@@ -1,0 +1,20 @@
+workflows:
+  ios-altstore-build:
+    name: myLyrics iOS Build (AltStore)
+    environment:
+      flutter: default
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Installa dipendenze Flutter
+        script: flutter pub get
+      - name: Compila app iOS (Unsigned)
+        script: flutter build ios --release --no-codesign
+      - name: Genera file IPA per AltStore
+        script: |
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          mv Runner.app Payload/
+          zip -ry myLyrics.ipa Payload
+    artifacts:
+      - build/ios/iphoneos/myLyrics.ipa
