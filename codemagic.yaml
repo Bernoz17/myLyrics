@@ -1,6 +1,6 @@
 workflows:
   ios-build:
-    name: iOS Build - appFrasi + FrasiWidget
+    name: iOS Build + FrasiWidget + unsigned IPA
     max_build_duration: 60
     instance_type: mac_mini_m2
 
@@ -17,24 +17,35 @@ workflows:
         script: |
           flutter pub get
 
-      - name: Validate iOS project and widget target
+      - name: Validate existing iOS project
         script: |
+          set -e
           echo "=== Xcode targets ==="
           xcodebuild -project ios/Runner.xcodeproj -list
 
-          echo "=== Widget files ==="
+          echo "=== Check main app bundle ID ==="
+          grep -q 'PRODUCT_BUNDLE_IDENTIFIER = it.bernoz.mylyrics;' ios/Runner.xcodeproj/project.pbxproj
+
+          echo "=== Check widget target ==="
+          grep -q 'PRODUCT_BUNDLE_IDENTIFIER = it.bernoz.mylyrics.FrasiWidget;' ios/Runner.xcodeproj/project.pbxproj
           test -f ios/FrasiWidget/FrasiWidget.swift
           test -f ios/FrasiWidget/Info.plist
-          test -f ios/FrasiWidgetExtension.entitlements
-          test -f ios/Runner/Runner.entitlements
 
-          echo "=== Bundle identifiers ==="
-          grep -n "PRODUCT_BUNDLE_IDENTIFIER" ios/Runner.xcodeproj/project.pbxproj
-
-      - name: Build iOS app with widget target (no code signing)
+      - name: Build iOS without code signing
         script: |
+          set -e
           flutter build ios --release --no-codesign
 
+      - name: Package unsigned IPA
+        script: |
+          set -e
+          rm -rf ipa_payload
+          mkdir -p ipa_payload/Payload
+          cp -R build/ios/iphoneos/Runner.app ipa_payload/Payload/Runner.app
+          cd ipa_payload
+          /usr/bin/zip -qry ../appFrasi.ipa Payload
+
     artifacts:
-      - build/ios/iphoneos/**/*.app
+      - appFrasi.ipa
+      - build/ios/iphoneos/Runner.app
       - /tmp/xcodebuild_logs/*.log
