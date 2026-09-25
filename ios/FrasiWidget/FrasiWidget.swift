@@ -18,7 +18,7 @@ enum WidgetBackground: String, AppEnum, CaseIterable {
     static var typeDisplayRepresentation: TypeDisplayRepresentation = "Sfondo"
     static var caseDisplayRepresentations: [WidgetBackground: DisplayRepresentation] = [
         .nero: "Nero assoluto",
-        .trasparente: "Trasparente",
+        .trasparente: "Senza sfondo / Clear di iOS",
         .grigio: "Grigio scuro",
         .bianco: "Bianco",
         .verde: "Verde acqua"
@@ -159,10 +159,23 @@ struct Provider: AppIntentTimelineProvider {
             return nil
         }
 
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: date)
-        let epoch = calendar.startOfDay(for: Date(timeIntervalSince1970: 0))
-        let days = calendar.dateComponents([.day], from: epoch, to: today).day ?? 0
+        // Use the device's local year/month/day, then turn that civil date
+        // into a UTC date for the day-number calculation. This matches Flutter
+        // and avoids daylight-saving-time duration differences.
+        var localCalendar = Calendar(identifier: .gregorian)
+        localCalendar.timeZone = .autoupdatingCurrent
+
+        let components = localCalendar.dateComponents([.year, .month, .day], from: date)
+
+        var utcCalendar = Calendar(identifier: .gregorian)
+        utcCalendar.timeZone = TimeZone(secondsFromGMT: 0)!
+
+        guard let localDayAsUTC = utcCalendar.date(from: components),
+              let epochUTC = utcCalendar.date(from: DateComponents(year: 1970, month: 1, day: 1)) else {
+            return nil
+        }
+
+        let days = utcCalendar.dateComponents([.day], from: epochUTC, to: localDayAsUTC).day ?? 0
         let index = ((days % phrases.count) + phrases.count) % phrases.count
         return phrases[index]
     }
@@ -183,13 +196,26 @@ extension Color {
 struct FrasiWidgetEntryView: View {
     var entry: Provider.Entry
     @Environment(\.widgetFamily) private var family
+    @Environment(\.widgetRenderingMode) private var renderingMode
+
+    private var effectiveTextColor: Color {
+        switch renderingMode {
+        case .fullColor:
+            return Color(hex: entry.textColor)
+        case .accented, .vibrant:
+            // iOS can override widget colors in these rendering modes.
+            return .white
+        @unknown default:
+            return Color(hex: entry.textColor)
+        }
+    }
 
     var body: some View {
         Group {
             if family == .accessoryRectangular {
                 Text(entry.testo)
                     .font(.system(size: 14, weight: .medium, design: entry.fontStyle.design))
-                    .foregroundStyle(Color(hex: entry.textColor))
+                    .foregroundStyle(effectiveTextColor)
                     .lineLimit(3)
                     .multilineTextAlignment(.center)
                     .padding(6)
@@ -197,11 +223,11 @@ struct FrasiWidgetEntryView: View {
                 VStack(alignment: .center, spacing: 10) {
                     Image(systemName: "quote.opening")
                         .font(.system(size: 20, weight: .heavy))
-                        .foregroundStyle(Color(hex: entry.textColor).opacity(0.6))
+                        .foregroundStyle(effectiveTextColor.opacity(0.6))
 
                     Text(entry.testo)
                         .font(.system(size: 15, weight: .semibold, design: entry.fontStyle.design))
-                        .foregroundStyle(Color(hex: entry.textColor))
+                        .foregroundStyle(effectiveTextColor)
                         .multilineTextAlignment(.center)
                         .lineLimit(4)
                         .minimumScaleFactor(0.8)
@@ -210,7 +236,7 @@ struct FrasiWidgetEntryView: View {
 
                     Text(entry.dettagli)
                         .font(.system(size: 12, weight: .medium, design: entry.fontStyle.design))
-                        .foregroundStyle(Color(hex: entry.textColor).opacity(0.8))
+                        .foregroundStyle(effectiveTextColor.opacity(0.8))
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                 }
@@ -240,5 +266,6 @@ struct FrasiWidget: Widget {
         .configurationDisplayName("Le Mie Barre")
         .description("Mostra la frase del giorno e permette di scegliere aspetto e font.")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular])
+        .containerBackgroundRemovable(true)
     }
 }

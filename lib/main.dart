@@ -94,10 +94,10 @@ class _HomeTabState extends State<HomeTab> {
   @override
   void initState() {
     super.initState();
-    _caricaFraseRandom();
+    _caricaFraseDelGiorno();
   }
 
-  Future<void> _caricaFraseRandom() async {
+  Future<void> _caricaFraseDelGiorno() async {
     setState(() => isLoading = true);
     final frase = await DatabaseHelper.instance.getFraseDelGiorno();
 
@@ -135,9 +135,9 @@ class _HomeTabState extends State<HomeTab> {
                         ),
                         const SizedBox(height: 50),
                         ElevatedButton.icon(
-                          onPressed: _caricaFraseRandom,
-                          icon: const Icon(Icons.shuffle),
-                          label: const Text("Nuova Frase"),
+                          onPressed: _caricaFraseDelGiorno,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text("Aggiorna la frase del giorno"),
                         )
                       ],
                     ),
@@ -579,9 +579,9 @@ class WidgetSettingsTab extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const Text(
-            "Per mantenere l'app completamente gratuita, il widget non usa un App Group condiviso con l'app. "
-            "La frase del giorno viene calcolata nello stesso modo da app e widget, mentre sfondo, colore del testo e font "
-            "si impostano per ogni widget dalla schermata Modifica widget di iOS.",
+            "Il widget usa la stessa frase del giorno della Home. "
+            "Senza un App Group non è possibile sincronizzare una frase casuale scelta dall'app; "
+            "per mantenere tutto gratuito, entrambi calcolano la stessa frase giornaliera.",
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 16),
           ),
@@ -592,7 +592,10 @@ class WidgetSettingsTab extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
-                  Text("Come cambiare lo stile", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(
+                    "Come cambiare stile",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                   SizedBox(height: 12),
                   Text("1. Tieni premuto il widget sulla Home."),
                   Text("2. Tocca Modifica widget."),
@@ -612,8 +615,9 @@ class WidgetSettingsTab extends StatelessWidget {
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      "La Home e il widget usano la stessa sequenza di 1.352 frasi e la stessa frase del giorno, "
-                      "quindi la frase visualizzata coincide durante la giornata.",
+                      "Per l'effetto trasparente di iOS, usa anche l'aspetto \"Clear\" "
+                      "nella personalizzazione della schermata Home. In modalità Tinta/Clear, "
+                      "iOS può sostituire lo sfondo con il proprio effetto di vetro e adattare i colori.",
                     ),
                   ),
                 ],

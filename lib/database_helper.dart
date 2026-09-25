@@ -96,10 +96,12 @@ class DatabaseHelper {
     if (jsonList.isEmpty) return null;
 
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final epoch = DateTime(1970, 1, 1);
-    final days = today.difference(epoch).inDays;
-    final index = days % jsonList.length;
+    // Keep the device-local calendar date, then calculate day number using
+    // UTC civil dates so daylight-saving transitions cannot change the index.
+    final todayUtc = DateTime.utc(now.year, now.month, now.day);
+    final epochUtc = DateTime.utc(1970, 1, 1);
+    final days = todayUtc.difference(epochUtc).inDays;
+    final index = ((days % jsonList.length) + jsonList.length) % jsonList.length;
     final item = Map<String, dynamic>.from(jsonList[index] as Map);
 
     return {
