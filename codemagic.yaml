@@ -17,19 +17,16 @@ workflows:
         script: |
           flutter pub get
 
-      - name: Validate existing iOS project
+      - name: Validate iOS project and widget
         script: |
           set -e
-          echo "=== Xcode targets ==="
           xcodebuild -project ios/Runner.xcodeproj -list
-
-          echo "=== Check main app bundle ID ==="
           grep -q 'PRODUCT_BUNDLE_IDENTIFIER = it.bernoz.mylyrics;' ios/Runner.xcodeproj/project.pbxproj
-
-          echo "=== Check widget target ==="
           grep -q 'PRODUCT_BUNDLE_IDENTIFIER = it.bernoz.mylyrics.FrasiWidget;' ios/Runner.xcodeproj/project.pbxproj
           test -f ios/FrasiWidget/FrasiWidget.swift
           test -f ios/FrasiWidget/Info.plist
+          test -f ios/FrasiWidget/frasi.json
+          ! grep -q 'group.it.bernoz.myLyrics' ios/Runner.xcodeproj/project.pbxproj
 
       - name: Build iOS without code signing
         script: |

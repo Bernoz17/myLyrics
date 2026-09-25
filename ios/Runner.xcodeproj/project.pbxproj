@@ -19,6 +19,7 @@
 		B0C8233E3065C4CF00316AB3 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B0C8233D3065C4CF00316AB3 /* SwiftUI.framework */; };
 		B0C823413065C4CF00316AB3 /* FrasiWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C823403065C4CF00316AB3 /* FrasiWidget.swift */; };
 		B0C823433065C4D100316AB3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0C823423065C4D100316AB3 /* Assets.xcassets */; };
+		D1A000000000000000000002 /* frasi.json in Resources */ = {isa = PBXBuildFile; fileRef = D1A000000000000000000001 /* frasi.json */; };
 		B0C823473065C4D100316AB3 /* FrasiWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = B0C823393065C4CF00316AB3 /* FrasiWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -86,8 +87,7 @@
 		B0C823403065C4CF00316AB3 /* FrasiWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrasiWidget.swift; sourceTree = "<group>"; };
 		B0C823423065C4D100316AB3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B0C823443065C4D100316AB3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		B0C8234D3065C52400316AB3 /* Runner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
-		B0C8234E3065C54D00316AB3 /* FrasiWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FrasiWidgetExtension.entitlements; sourceTree = "<group>"; };
+		D1A000000000000000000001 /* frasi.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = frasi.json; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -132,7 +132,6 @@
 		97C146E51CF9000F007C117D = {
 			isa = PBXGroup;
 			children = (
-				B0C8234E3065C54D00316AB3 /* FrasiWidgetExtension.entitlements */,
 				9740EEB11CF90186004384FC /* Flutter */,
 				97C146F01CF9000F007C117D /* Runner */,
 				B0C8233F3065C4CF00316AB3 /* FrasiWidget */,
@@ -155,7 +154,6 @@
 		97C146F01CF9000F007C117D /* Runner */ = {
 			isa = PBXGroup;
 			children = (
-				B0C8234D3065C52400316AB3 /* Runner.entitlements */,
 				97C146FA1CF9000F007C117D /* Main.storyboard */,
 				97C146FD1CF9000F007C117D /* Assets.xcassets */,
 				97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */,
@@ -184,6 +182,7 @@
 				B0C823403065C4CF00316AB3 /* FrasiWidget.swift */,
 				B0C823423065C4D100316AB3 /* Assets.xcassets */,
 				B0C823443065C4D100316AB3 /* Info.plist */,
+				D1A000000000000000000001 /* frasi.json */,
 			);
 			path = FrasiWidget;
 			sourceTree = "<group>";
@@ -315,6 +314,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B0C823433065C4D100316AB3 /* Assets.xcassets in Resources */,
+				D1A000000000000000000002 /* frasi.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -475,7 +475,6 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				DEVELOPMENT_TEAM = W8UDF4YKKP;
 				ENABLE_BITCODE = NO;
@@ -657,7 +656,6 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				DEVELOPMENT_TEAM = W8UDF4YKKP;
 				ENABLE_BITCODE = NO;
@@ -682,7 +680,6 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				DEVELOPMENT_TEAM = W8UDF4YKKP;
 				ENABLE_BITCODE = NO;
@@ -710,7 +707,6 @@
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_ENTITLEMENTS = FrasiWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = W8UDF4YKKP;
@@ -750,7 +746,6 @@
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_ENTITLEMENTS = FrasiWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = W8UDF4YKKP;
@@ -787,7 +782,6 @@
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_ENTITLEMENTS = FrasiWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = W8UDF4YKKP;

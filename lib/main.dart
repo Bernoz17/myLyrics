@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:home_widget/home_widget.dart';
 import 'database_helper.dart';
 
 void main() async {
@@ -13,13 +12,6 @@ void main() async {
     databaseFactory = databaseFactoryFfi;
   }
   
-  if (Platform.isIOS || Platform.isAndroid) {
-    try {
-      await HomeWidget.setAppGroupId('group.it.bernoz.myLyrics');
-    } catch (e) {
-      print("Errore HomeWidget in avvio: $e");
-    }
-  }
 
   await DatabaseHelper.instance.popolaDatabaseIniziale();
   runApp(const MyApp());
@@ -107,27 +99,12 @@ class _HomeTabState extends State<HomeTab> {
 
   Future<void> _caricaFraseRandom() async {
     setState(() => isLoading = true);
-    final frase = await DatabaseHelper.instance.getRandomFrase();
-    
+    final frase = await DatabaseHelper.instance.getFraseDelGiorno();
+
     setState(() {
       fraseDelGiorno = frase;
       isLoading = false;
     });
-
-    if (frase != null) {
-      // Eseguiamo l'aggiornamento del widget SOLO su iOS e Android
-      if (Platform.isIOS || Platform.isAndroid) {
-        try {
-          await HomeWidget.saveWidgetData<String>('widget_testo', frase['testo']);
-          await HomeWidget.saveWidgetData<String>('widget_dettagli', "${frase['titolo']} - ${frase['artista']}");
-          await HomeWidget.updateWidget(iOSName: 'FrasiWidget'); 
-        } catch (e) {
-          print("Nessun widget trovato o errore di aggiornamento: $e");
-        }
-      } else {
-        print("Test su PC: Widget saltato. Frase caricata: ${frase['testo']}");
-      }
-    }
   }
 
   @override
@@ -581,58 +558,10 @@ class _ArtistsTabState extends State<ArtistsTab> with InterazioniFrase {
   }
 }
 // ----------------------------------------------------------------------
-// SCHERMATA: Impostazioni Stile Widget
+// SCHERMATA: Impostazioni Widget (senza App Group)
 // ----------------------------------------------------------------------
-class WidgetSettingsTab extends StatefulWidget {
+class WidgetSettingsTab extends StatelessWidget {
   const WidgetSettingsTab({super.key});
-
-  @override
-  State<WidgetSettingsTab> createState() => _WidgetSettingsTabState();
-}
-
-class _WidgetSettingsTabState extends State<WidgetSettingsTab> {
-  String bgColor = "000000";
-  String textColor = "FFFFFF";
-  String fontStyle = "default";
-
-  @override
-  void initState() {
-    super.initState();
-    _caricaImpostazioni();
-  }
-
-  // Legge le impostazioni salvate nella memoria dell'iPhone
-  Future<void> _caricaImpostazioni() async {
-    if (Platform.isIOS || Platform.isAndroid) {
-      final savedBg = await HomeWidget.getWidgetData<String>('widget_bgColor');
-      final savedText = await HomeWidget.getWidgetData<String>('widget_textColor');
-      final savedFont = await HomeWidget.getWidgetData<String>('widget_fontStyle');
-      
-      setState(() {
-        if (savedBg != null) bgColor = savedBg;
-        if (savedText != null) textColor = savedText;
-        if (savedFont != null) fontStyle = savedFont;
-      });
-    }
-  }
-
-  // Salva e forza l'aggiornamento grafico del widget su iOS
-  Future<void> _salvaEApplica() async {
-    if (Platform.isIOS || Platform.isAndroid) {
-      await HomeWidget.saveWidgetData<String>('widget_bgColor', bgColor);
-      await HomeWidget.saveWidgetData<String>('widget_textColor', textColor);
-      await HomeWidget.saveWidgetData<String>('widget_fontStyle', fontStyle);
-      await HomeWidget.updateWidget(iOSName: 'FrasiWidget');
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Stile del widget aggiornato! ✨"), backgroundColor: Colors.teal),
-        );
-      }
-    } else {
-      print("Test su PC: Salvataggio simulato. Bg: $bgColor, Testo: $textColor, Font: $fontStyle");
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -641,61 +570,56 @@ class _WidgetSettingsTabState extends State<WidgetSettingsTab> {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          const Text("Sfondo del Widget", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            value: bgColor,
-            decoration: const InputDecoration(border: OutlineInputBorder()),
-            items: const [
-              DropdownMenuItem(value: "000000", child: Text("Nero Assoluto")),
-              DropdownMenuItem(value: "transparent", child: Text("Trasparente (Invisibile)")),
-              DropdownMenuItem(value: "1C1C1E", child: Text("Grigio Scuro")),
-              DropdownMenuItem(value: "FFFFFF", child: Text("Bianco")),
-              DropdownMenuItem(value: "00C49A", child: Text("Verde Acqua")),
-            ],
-            onChanged: (val) => setState(() => bgColor = val!),
+          const Icon(Icons.widgets, size: 64, color: Colors.tealAccent),
+          const SizedBox(height: 20),
+          const Text(
+            "Personalizza ogni widget direttamente da iOS",
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
           ),
-          
-          const SizedBox(height: 24),
-          const Text("Colore del Testo", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            value: textColor,
-            decoration: const InputDecoration(border: OutlineInputBorder()),
-            items: const [
-              DropdownMenuItem(value: "FFFFFF", child: Text("Bianco")),
-              DropdownMenuItem(value: "000000", child: Text("Nero")),
-              DropdownMenuItem(value: "1DE9B6", child: Text("Verde Acqua Acceso")),
-              DropdownMenuItem(value: "FFD600", child: Text("Giallo Oro")),
-            ],
-            onChanged: (val) => setState(() => textColor = val!),
+          const SizedBox(height: 16),
+          const Text(
+            "Per mantenere l'app completamente gratuita, il widget non usa un App Group condiviso con l'app. "
+            "La frase del giorno viene calcolata nello stesso modo da app e widget, mentre sfondo, colore del testo e font "
+            "si impostano per ogni widget dalla schermata Modifica widget di iOS.",
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16),
           ),
-
-          const SizedBox(height: 24),
-          const Text("Stile del Font", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            value: fontStyle,
-            decoration: const InputDecoration(border: OutlineInputBorder()),
-            items: const [
-              DropdownMenuItem(value: "default", child: Text("Standard iOS")),
-              DropdownMenuItem(value: "serif", child: Text("Elegante (Serif)")),
-              DropdownMenuItem(value: "monospaced", child: Text("Macchina da Scrivere")),
-              DropdownMenuItem(value: "rounded", child: Text("Moderno Arrotondato")),
-            ],
-            onChanged: (val) => setState(() => fontStyle = val!),
-          ),
-
-          const SizedBox(height: 40),
-          ElevatedButton.icon(
-            onPressed: _salvaEApplica,
-            icon: const Icon(Icons.check),
-            label: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16.0),
-              child: Text("Applica e Aggiorna Widget", style: TextStyle(fontSize: 16)),
+          const SizedBox(height: 28),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text("Come cambiare lo stile", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 12),
+                  Text("1. Tieni premuto il widget sulla Home."),
+                  Text("2. Tocca Modifica widget."),
+                  Text("3. Scegli Sfondo, Colore del testo e Font."),
+                ],
+              ),
             ),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.black),
-          )
+          ),
+          const SizedBox(height: 20),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Icon(Icons.info_outline, color: Colors.tealAccent),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      "La Home e il widget usano la stessa sequenza di 1.352 frasi e la stessa frase del giorno, "
+                      "quindi la frase visualizzata coincide durante la giornata.",
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

@@ -80,6 +80,37 @@ class DatabaseHelper {
     }
   }
 
+  Future<Map<String, dynamic>?> getFraseDelGiorno() async {
+    final String jsonString = await rootBundle.loadString('assets/frasi.json');
+    final dynamic jsonData = jsonDecode(jsonString);
+
+    List<dynamic> jsonList;
+    if (jsonData is List) {
+      jsonList = jsonData;
+    } else if (jsonData is Map && jsonData.containsKey('frasi')) {
+      jsonList = jsonData['frasi'];
+    } else {
+      throw Exception("Struttura JSON non riconosciuta.");
+    }
+
+    if (jsonList.isEmpty) return null;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final epoch = DateTime(1970, 1, 1);
+    final days = today.difference(epoch).inDays;
+    final index = days % jsonList.length;
+    final item = Map<String, dynamic>.from(jsonList[index] as Map);
+
+    return {
+      'id': index + 1,
+      'testo': item['testo']?.toString() ?? '',
+      'titolo': item['titolo']?.toString() ?? '',
+      'artista': item['artista']?.toString() ?? '',
+      'preferito': item['preferito'] ?? 0,
+    };
+  }
+
   Future<int> contaFrasi() async {
     final db = await instance.database;
     int? count = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM frasi'));
