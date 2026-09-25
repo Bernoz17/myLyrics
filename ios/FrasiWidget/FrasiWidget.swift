@@ -36,7 +36,7 @@ struct Provider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
-        let userDefaults = UserDefaults(suiteName: "group.com.mattia.frasi")
+        let userDefaults = UserDefaults(suiteName: "group.it.bernoz.myLyrics")
         
         let testo = userDefaults?.string(forKey: "widget_testo") ?? "Nessuna frase estratta"
         let dettagli = userDefaults?.string(forKey: "widget_dettagli") ?? ""
@@ -51,6 +51,8 @@ struct Provider: TimelineProvider {
 
 struct FrasiWidgetEntryView : View {
     var entry: Provider.Entry
+    
+    @Environment(\.widgetFamily) var family
 
     func getFontDesign() -> Font.Design {
         switch entry.fontStyle {
@@ -62,6 +64,14 @@ struct FrasiWidgetEntryView : View {
     }
 
     var body: some View {
+        switch family {
+        case .accessoryRectangular:
+            Text(entry.testo)
+                .font(.system(size: 14, weight: .medium))
+                .lineLimit(3)
+                .multilineTextAlignment(.center)
+        default:
+                
         VStack(alignment: .center, spacing: 10) {
             Image(systemName: "quote.opening")
                 .font(.system(size: 20, weight: .heavy))
@@ -84,6 +94,7 @@ struct FrasiWidgetEntryView : View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
     }
 }
 
@@ -108,6 +119,6 @@ struct FrasiWidget: Widget {
         }
         .configurationDisplayName("Le Mie Barre")
         .description("Il widget personalizzabile con le tue citazioni.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular])
     }
 }

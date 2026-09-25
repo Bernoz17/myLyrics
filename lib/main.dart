@@ -15,7 +15,7 @@ void main() async {
   
   if (Platform.isIOS || Platform.isAndroid) {
     try {
-      await HomeWidget.setAppGroupId('group.com.mattia.frasi');
+      await HomeWidget.setAppGroupId('group.it.bernoz.myLyrics');
     } catch (e) {
       print("Errore HomeWidget in avvio: $e");
     }
