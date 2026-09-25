@@ -9,7 +9,7 @@
 	<key>CFBundleDisplayName</key>
 	<string>Appfrasi</string>
 	<key>CFBundleExecutable</key>
-	<string>$(myLyrics)</string>
+	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
