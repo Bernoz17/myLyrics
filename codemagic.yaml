@@ -1,6 +1,6 @@
 workflows:
   ios-build:
-    name: iOS Build - appFrasi
+    name: iOS Build - appFrasi + FrasiWidget
     max_build_duration: 60
     instance_type: mac_mini_m2
 
@@ -17,15 +17,21 @@ workflows:
         script: |
           flutter pub get
 
-      - name: Check iOS project
+      - name: Validate iOS project and widget target
         script: |
-          echo "=== iOS project ==="
-          find ios -maxdepth 2 -type f | sort
+          echo "=== Xcode targets ==="
+          xcodebuild -project ios/Runner.xcodeproj -list
 
-          echo "=== Flutter version ==="
-          flutter --version
+          echo "=== Widget files ==="
+          test -f ios/FrasiWidget/FrasiWidget.swift
+          test -f ios/FrasiWidget/Info.plist
+          test -f ios/FrasiWidgetExtension.entitlements
+          test -f ios/Runner/Runner.entitlements
 
-      - name: Build iOS without code signing
+          echo "=== Bundle identifiers ==="
+          grep -n "PRODUCT_BUNDLE_IDENTIFIER" ios/Runner.xcodeproj/project.pbxproj
+
+      - name: Build iOS app with widget target (no code signing)
         script: |
           flutter build ios --release --no-codesign
 
