@@ -14,23 +14,34 @@ workflows:
         script: |
           flutter doctor -v
 
-      - name: Get Flutter packages
+      - name: Flutter pub get
         script: |
           flutter pub get
 
-      - name: Generate iOS project
+      - name: Check iOS project
         script: |
-          flutter create --platforms=ios .
+          echo "=== iOS directory ==="
+          ls -la ios
 
-      - name: Install CocoaPods dependencies
+          echo "=== Podfile search ==="
+          find . -name "Podfile" -print
+
+          echo "=== Flutter version ==="
+          flutter --version
+
+      - name: Generate iOS dependencies
         script: |
-          if [ -f ios/Podfile ]; then
-            cd ios
-            pod install
-          else
-            echo "Podfile was not generated."
+          flutter pub get
+
+          if [ ! -f ios/Podfile ]; then
+            echo "Podfile not found after flutter pub get."
+            echo "Flutter project structure:"
+            find ios -maxdepth 2 -type f | sort
             exit 1
           fi
+
+          cd ios
+          pod install --repo-update
 
       - name: Build iOS without code signing
         script: |
