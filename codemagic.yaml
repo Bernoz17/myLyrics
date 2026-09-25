@@ -4,13 +4,16 @@ workflows:
     instance_type: mac_mini_m2
     environment:
       flutter: default
-      xcode: "15.4"
       cocoapods: default
     scripts:
-      - name: Pulizia Workspace corrotto
+      - name: Pialla cache e ricostruisci dipendenze iOS
         script: |
-          rm -rf ios/Runner.xcworkspace
-          rm -rf ios/Podfile.lock
+          cd ios
+          rm -rf Runner.xcworkspace
+          rm -rf Podfile.lock
+          pod deintegrate || true
+          pod repo update
+          cd ..
       - name: Installa dipendenze Flutter
         script: flutter pub get
       - name: Compila app iOS (Unsigned)
