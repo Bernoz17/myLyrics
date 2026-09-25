@@ -4,6 +4,7 @@ workflows:
     instance_type: mac_mini_m2
     environment:
       flutter: default
+      xcode: "15.4"
       cocoapods: default
     scripts:
       - name: Pulizia Workspace corrotto
