@@ -7,41 +7,23 @@ workflows:
     environment:
       flutter: stable
       xcode: latest
-      cocoapods: default
 
     scripts:
       - name: Flutter doctor
         script: |
           flutter doctor -v
 
-      - name: Flutter pub get
+      - name: Get Flutter packages
         script: |
           flutter pub get
 
       - name: Check iOS project
         script: |
-          echo "=== iOS directory ==="
-          ls -la ios
-
-          echo "=== Podfile search ==="
-          find . -name "Podfile" -print
+          echo "=== iOS project ==="
+          find ios -maxdepth 2 -type f | sort
 
           echo "=== Flutter version ==="
           flutter --version
-
-      - name: Generate iOS dependencies
-        script: |
-          flutter pub get
-
-          if [ ! -f ios/Podfile ]; then
-            echo "Podfile not found after flutter pub get."
-            echo "Flutter project structure:"
-            find ios -maxdepth 2 -type f | sort
-            exit 1
-          fi
-
-          cd ios
-          pod install --repo-update
 
       - name: Build iOS without code signing
         script: |
