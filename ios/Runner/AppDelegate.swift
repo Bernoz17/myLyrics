@@ -1,5 +1,6 @@
 import Flutter
 import UIKit
+import WidgetKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -12,5 +13,20 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+
+    let widgetChannel = FlutterMethodChannel(
+      name: "mylyrics/widget",
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
+    )
+
+    widgetChannel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "reload":
+        WidgetCenter.shared.reloadAllTimelines()
+        result(nil)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
   }
 }

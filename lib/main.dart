@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'database_helper.dart';
+import 'supabase_widget_service.dart';
+import 'widget_bridge.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -97,15 +99,70 @@ class _HomeTabState extends State<HomeTab> {
     _caricaFraseDelGiorno();
   }
 
-  Future<void> _caricaFraseDelGiorno() async {
+  Future<void> _caricaFraseCorrente({bool nuovaCasuale = false}) async {
     setState(() => isLoading = true);
-    final frase = await DatabaseHelper.instance.getFraseDelGiorno();
 
-    setState(() {
-      fraseDelGiorno = frase;
-      isLoading = false;
-    });
+    try {
+      final service = SupabaseWidgetService.instance;
+      SupabaseWidgetState? stato;
+
+      if (!nuovaCasuale && service.isConfigured) {
+        stato = await service.getState();
+      }
+
+      if (nuovaCasuale || stato == null) {
+        final frase = await DatabaseHelper.instance.getRandomFrase();
+        if (frase == null) throw Exception('Nessuna frase disponibile.');
+
+        if (service.isConfigured) {
+          stato = await service.setPhrase(frase, existing: stato);
+          await WidgetBridge.reload();
+        } else {
+          stato = SupabaseWidgetState(
+            phraseId: (frase['id'] as num?)?.toInt() ?? 0,
+            testo: frase['testo']?.toString() ?? '',
+            titolo: frase['titolo']?.toString() ?? '',
+            artista: frase['artista']?.toString() ?? '',
+            bgColor: stato?.bgColor ?? '000000',
+            textColor: stato?.textColor ?? 'FFFFFF',
+            fontStyle: stato?.fontStyle ?? 'default',
+          );
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        fraseDelGiorno = {
+          'id': stato!.phraseId,
+          'testo': stato.testo,
+          'titolo': stato.titolo,
+          'artista': stato.artista,
+        };
+        isLoading = false;
+      });
+    } catch (e) {
+      final fallback = await DatabaseHelper.instance.getRandomFrase();
+      if (!mounted) return;
+
+      setState(() {
+        fraseDelGiorno = fallback;
+        isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Supabase non raggiungibile: $e'),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
   }
+
+  Future<void> _caricaFraseDelGiorno() =>
+      _caricaFraseCorrente(nuovaCasuale: false);
+
+  Future<void> _aggiornaFrase() =>
+      _caricaFraseCorrente(nuovaCasuale: true);
 
   @override
   Widget build(BuildContext context) {
@@ -135,7 +192,7 @@ class _HomeTabState extends State<HomeTab> {
                         ),
                         const SizedBox(height: 50),
                         ElevatedButton.icon(
-                          onPressed: _caricaFraseDelGiorno,
+                          onPressed: _aggiornaFrase,
                           icon: const Icon(Icons.refresh),
                           label: const Text("Aggiorna la frase del giorno"),
                         )
@@ -560,72 +617,168 @@ class _ArtistsTabState extends State<ArtistsTab> with InterazioniFrase {
 // ----------------------------------------------------------------------
 // SCHERMATA: Impostazioni Widget (senza App Group)
 // ----------------------------------------------------------------------
-class WidgetSettingsTab extends StatelessWidget {
+class WidgetSettingsTab extends StatefulWidget {
   const WidgetSettingsTab({super.key});
+
+  @override
+  State<WidgetSettingsTab> createState() => _WidgetSettingsTabState();
+}
+
+class _WidgetSettingsTabState extends State<WidgetSettingsTab> {
+  String bgColor = "000000";
+  String textColor = "FFFFFF";
+  String fontStyle = "default";
+  bool isLoading = true;
+  bool isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStyle();
+  }
+
+  Future<void> _loadStyle() async {
+    try {
+      final state = await SupabaseWidgetService.instance.getState();
+      if (state != null && mounted) {
+        setState(() {
+          bgColor = state.bgColor;
+          textColor = state.textColor;
+          fontStyle = state.fontStyle;
+        });
+      }
+    } catch (_) {
+      // Keep defaults.
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> _saveStyle() async {
+    setState(() => isSaving = true);
+
+    try {
+      final service = SupabaseWidgetService.instance;
+      final current = await service.getState();
+
+      await service.setStyle(
+        bgColor: bgColor,
+        textColor: textColor,
+        fontStyle: fontStyle,
+        existing: current,
+      );
+      await WidgetBridge.reload();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Stile del widget aggiornato! ✨"),
+          backgroundColor: Colors.teal,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Errore durante il salvataggio: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => isSaving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Personalizza Widget")),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          const Icon(Icons.widgets, size: 64, color: Colors.tealAccent),
-          const SizedBox(height: 20),
-          const Text(
-            "Personalizza ogni widget direttamente da iOS",
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            "Il widget usa la stessa frase del giorno della Home. "
-            "Senza un App Group non è possibile sincronizzare una frase casuale scelta dall'app; "
-            "per mantenere tutto gratuito, entrambi calcolano la stessa frase giornaliera.",
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16),
-          ),
-          const SizedBox(height: 28),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    "Come cambiare stile",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 12),
-                  Text("1. Tieni premuto il widget sulla Home."),
-                  Text("2. Tocca Modifica widget."),
-                  Text("3. Scegli Sfondo, Colore del testo e Font."),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Icon(Icons.info_outline, color: Colors.tealAccent),
-                  SizedBox(width: 12),
-                  Expanded(
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              padding: const EdgeInsets.all(24),
+              children: [
+                const Text(
+                  "Sfondo del Widget",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: bgColor,
+                  decoration: const InputDecoration(border: OutlineInputBorder()),
+                  items: const [
+                    DropdownMenuItem(value: "000000", child: Text("Nero Assoluto")),
+                    DropdownMenuItem(value: "transparent", child: Text("Trasparente / Clear")),
+                    DropdownMenuItem(value: "1C1C1E", child: Text("Grigio Scuro")),
+                    DropdownMenuItem(value: "FFFFFF", child: Text("Bianco")),
+                    DropdownMenuItem(value: "00C49A", child: Text("Verde Acqua")),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) setState(() => bgColor = value);
+                  },
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  "Colore del Testo",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: textColor,
+                  decoration: const InputDecoration(border: OutlineInputBorder()),
+                  items: const [
+                    DropdownMenuItem(value: "FFFFFF", child: Text("Bianco")),
+                    DropdownMenuItem(value: "000000", child: Text("Nero")),
+                    DropdownMenuItem(value: "1DE9B6", child: Text("Verde Acqua Acceso")),
+                    DropdownMenuItem(value: "FFD600", child: Text("Giallo Oro")),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) setState(() => textColor = value);
+                  },
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  "Stile del Font",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: fontStyle,
+                  decoration: const InputDecoration(border: OutlineInputBorder()),
+                  items: const [
+                    DropdownMenuItem(value: "default", child: Text("Standard iOS")),
+                    DropdownMenuItem(value: "serif", child: Text("Elegante (Serif)")),
+                    DropdownMenuItem(value: "monospaced", child: Text("Macchina da Scrivere")),
+                    DropdownMenuItem(value: "rounded", child: Text("Moderno Arrotondato")),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) setState(() => fontStyle = value);
+                  },
+                ),
+                const SizedBox(height: 40),
+                ElevatedButton.icon(
+                  onPressed: isSaving ? null : _saveStyle,
+                  icon: isSaving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.check),
+                  label: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
                     child: Text(
-                      "Per l'effetto trasparente di iOS, usa anche l'aspetto \"Clear\" "
-                      "nella personalizzazione della schermata Home. In modalità Tinta/Clear, "
-                      "iOS può sostituire lo sfondo con il proprio effetto di vetro e adattare i colori.",
+                      "Applica e Aggiorna Widget",
+                      style: TextStyle(fontSize: 16),
                     ),
                   ),
-                ],
-              ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    foregroundColor: Colors.black,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 }

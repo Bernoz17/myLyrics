@@ -1,6 +1,6 @@
 workflows:
   ios-build:
-    name: iOS Build + FrasiWidget + unsigned IPA
+    name: myLyrics + FrasiWidget + Supabase
     max_build_duration: 60
     instance_type: mac_mini_m2
 
@@ -17,7 +17,7 @@ workflows:
         script: |
           flutter pub get
 
-      - name: Validate iOS project and widget
+      - name: Validate iOS project
         script: |
           set -e
           xcodebuild -project ios/Runner.xcodeproj -list
@@ -25,13 +25,35 @@ workflows:
           grep -q 'PRODUCT_BUNDLE_IDENTIFIER = it.bernoz.mylyrics.FrasiWidget;' ios/Runner.xcodeproj/project.pbxproj
           test -f ios/FrasiWidget/FrasiWidget.swift
           test -f ios/FrasiWidget/Info.plist
-          test -f ios/FrasiWidget/frasi.json
-          ! grep -q 'group.it.bernoz.myLyrics' ios/Runner.xcodeproj/project.pbxproj
+
+      - name: Inject Supabase configuration
+        script: |
+          set -e
+          : "${SUPABASE_URL:?Add SUPABASE_URL to Codemagic environment variables}"
+          : "${SUPABASE_PUBLISHABLE_KEY:?Add SUPABASE_PUBLISHABLE_KEY to Codemagic environment variables}"
+
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path("ios/FrasiWidget/Info.plist")
+          text = path.read_text()
+          text = text.replace("__SUPABASE_URL__", os.environ["SUPABASE_URL"])
+          text = text.replace(
+              "__SUPABASE_PUBLISHABLE_KEY__",
+              os.environ["SUPABASE_PUBLISHABLE_KEY"]
+          )
+          path.write_text(text)
+          PY
 
       - name: Build iOS without code signing
         script: |
           set -e
-          flutter build ios --release --no-codesign
+          flutter build ios \
+            --release \
+            --no-codesign \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
 
       - name: Package unsigned IPA
         script: |
@@ -40,9 +62,9 @@ workflows:
           mkdir -p ipa_payload/Payload
           cp -R build/ios/iphoneos/Runner.app ipa_payload/Payload/Runner.app
           cd ipa_payload
-          /usr/bin/zip -qry ../appFrasi.ipa Payload
+          /usr/bin/zip -qry ../myLyrics.ipa Payload
 
     artifacts:
-      - appFrasi.ipa
+      - myLyrics.ipa
       - build/ios/iphoneos/Runner.app
       - /tmp/xcodebuild_logs/*.log

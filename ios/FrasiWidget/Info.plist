@@ -7,5 +7,9 @@
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.widgetkit-extension</string>
 	</dict>
+	<key>SupabaseURL</key>
+	<string>__SUPABASE_URL__</string>
+	<key>SupabasePublishableKey</key>
+	<string>__SUPABASE_PUBLISHABLE_KEY__</string>
 </dict>
 </plist>
