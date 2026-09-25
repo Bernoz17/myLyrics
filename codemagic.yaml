@@ -3,7 +3,7 @@ workflows:
     name: myLyrics iOS Build (AltStore)
     environment:
       flutter: default
-      xcode: latest
+      xcode: 15.4
       cocoapods: default
     scripts:
       - name: Installa dipendenze Flutter
