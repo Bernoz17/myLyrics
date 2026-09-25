@@ -20,8 +20,7 @@ workflows:
 
       - name: Install CocoaPods dependencies
         script: |
-          cd ios
-          pod install
+          find . -name "Podfile" -execdir pod install \;
 
       - name: Build iOS without code signing
         script: |
@@ -30,5 +29,5 @@ workflows:
             --no-codesign
 
     artifacts:
-      - build/ios/iphoneos/Runner.app
+      - build/ios/iphoneos/**/*.app
       - /tmp/xcodebuild_logs/*.log
