@@ -205,7 +205,7 @@ struct FrasiWidgetEntryView: View {
         case .accented, .vibrant:
             // iOS can override widget colors in these rendering modes.
             return .white
-        @unknown default:
+        default:
             return Color(hex: entry.textColor)
         }
     }
