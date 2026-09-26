@@ -106,7 +106,10 @@ class _HomeTabState extends State<HomeTab> {
       final service = SupabaseWidgetService.instance;
       SupabaseWidgetState? stato;
 
-      if (!nuovaCasuale && service.isConfigured) {
+      // Always read the current shared state first. This is important when
+      // "Aggiorna la frase" is pressed: the new random phrase must replace
+      // only the phrase fields, while bg/font/text-color stay untouched.
+      if (service.isConfigured) {
         stato = await service.getState();
       }
 

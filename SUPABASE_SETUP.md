@@ -20,3 +20,8 @@ The SQL policy deliberately limits anonymous access to this one row. Because
 the app is client-only, anyone who extracts the public key could still modify
 this one row; this is suitable for a personal app but is not a multi-user
 security boundary.
+
+
+## Behavior updates
+- Pressing "Aggiorna la frase" first reads the current Supabase row and then replaces only the phrase fields, so the selected widget style is preserved.
+- The "Trasparente / Clear" choice uses clear rendering for the Lock Screen accessory widget and a subtle ultra-thin material on Home Screen. In iOS Clear/Tinted mode, WidgetKit may remove the container and apply its own system glass effect.

@@ -221,7 +221,22 @@ struct FrasiWidgetEntryView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .containerBackground(Color(hex: entry.bgColor), for: .widget)
+        .containerBackground(for: .widget) {
+            if entry.bgColor == "transparent" {
+                // Accessory widgets (e.g. Lock Screen) naturally blend into
+                // the system background. On Home Screen, use a subtle material
+                // instead of the opaque dark fallback that SwiftUI can show
+                // for a transparent container.
+                if family == .accessoryRectangular {
+                    Color.clear
+                } else {
+                    Rectangle()
+                        .fill(.ultraThinMaterial)
+                }
+            } else {
+                Color(hex: entry.bgColor)
+            }
+        }
     }
 }
 
