@@ -3,6 +3,7 @@ import SwiftUI
 
 struct WidgetState: Codable {
     let phrase_id: Int
+    let hour_key: String
     let testo: String
     let titolo: String
     let artista: String
@@ -10,6 +11,20 @@ struct WidgetState: Codable {
     let text_color: String
     let font_style: String
     let updated_at: String?
+}
+
+struct PhraseRecord: Codable {
+    let testo: String
+    let titolo: String
+    let artista: String
+}
+
+struct HourPhrase {
+    let testo: String
+    let titolo: String
+    let artista: String
+    let phraseId: Int
+    let hourKey: String
 }
 
 enum SupabaseWidgetClient {
@@ -24,11 +39,68 @@ enum SupabaseWidgetClient {
         Bundle.main.object(forInfoDictionaryKey: "SupabasePublishableKey") as? String ?? ""
     }
 
+    static func currentHourKey(_ date: Date = Date()) -> String {
+        let calendar = Calendar.autoupdatingCurrent
+        let components = calendar.dateComponents(
+            [.year, .month, .day, .hour],
+            from: date
+        )
+
+        return String(
+            format: "%04d-%02d-%02d-%02d",
+            components.year ?? 0,
+            components.month ?? 0,
+            components.day ?? 0,
+            components.hour ?? 0
+        )
+    }
+
+    static func hourlyPhrase(for hourKey: String) -> PhraseRecord? {
+        guard
+            let url = Bundle.main.url(forResource: "frasi", withExtension: "json"),
+            let data = try? Data(contentsOf: url),
+            let phrases = try? JSONDecoder().decode([PhraseRecord].self, from: data),
+            !phrases.isEmpty
+        else {
+            return nil
+        }
+
+        // FNV-1a 32-bit; same algorithm used by Dart.
+        var hash: UInt32 = 2_166_136_261
+        for byte in Data("\(hourKey)-myLyrics".utf8) {
+            hash ^= UInt32(byte)
+            hash = hash &* 16_777_619
+        }
+
+        return phrases[Int(hash % UInt32(phrases.count))]
+    }
+
+    static func nextHour(after date: Date) -> Date {
+        let calendar = Calendar.autoupdatingCurrent
+        let hourStart = calendar.date(
+            bySetting: .minute,
+            value: 0,
+            of: date
+        ) ?? date
+
+        let normalized = calendar.date(
+            bySetting: .second,
+            value: 0,
+            of: hourStart
+        ) ?? hourStart
+
+        return calendar.date(
+            byAdding: .hour,
+            value: 1,
+            to: normalized
+        ) ?? date.addingTimeInterval(3600)
+    }
+
     static func fetchState(completion: @escaping (WidgetState?) -> Void) {
         guard
             let url = URL(string:
                 "\(baseURL)/rest/v1/mylyrics_widget_state" +
-                "?select=phrase_id,testo,titolo,artista,bg_color,text_color,font_style,updated_at" +
+                "?select=phrase_id,hour_key,testo,titolo,artista,bg_color,text_color,font_style,updated_at" +
                 "&id=eq.1&limit=1"
             ),
             !baseURL.isEmpty,
@@ -47,7 +119,7 @@ enum SupabaseWidgetClient {
 
         URLSession.shared.dataTask(with: request) { data, response, _ in
             guard
-                let data = data,
+                let data,
                 let http = response as? HTTPURLResponse,
                 200..<300 ~= http.statusCode,
                 let rows = try? JSONDecoder().decode([WidgetState].self, from: data),
@@ -74,6 +146,7 @@ enum SupabaseWidgetClient {
         else {
             return nil
         }
+
         return state
     }
 }
@@ -100,52 +173,101 @@ struct Provider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> ()) {
-        completion(
-            SimpleEntry(
-                date: Date(),
-                testo: "La tua frase apparirà qui.",
-                dettagli: "myLyrics",
-                bgColor: "000000",
-                textColor: "FFFFFF",
-                fontStyle: "default"
-            )
-        )
+        completion(placeholder(in: context))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<SimpleEntry>) -> ()) {
         SupabaseWidgetClient.fetchState { state in
-            let entry: SimpleEntry
+            let now = Date()
+            let currentHour = SupabaseWidgetClient.currentHourKey(now)
+            let styleBg = state?.bg_color ?? "000000"
+            let styleText = state?.text_color ?? "FFFFFF"
+            let styleFont = state?.font_style ?? "default"
 
-            if let state {
-                entry = SimpleEntry(
-                    date: Date(),
-                    testo: state.testo,
-                    dettagli: [state.titolo, state.artista]
-                        .filter { !$0.isEmpty }
-                        .joined(separator: " - "),
-                    bgColor: state.bg_color,
-                    textColor: state.text_color,
-                    fontStyle: state.font_style
+            var entries: [SimpleEntry] = []
+
+            // Current hour: honor a manual phrase selected by the app if it belongs
+            // to the current hour; otherwise use the same pseudo-random hourly phrase
+            // used by Flutter.
+            if let state, state.hour_key == currentHour {
+                let details = [state.titolo, state.artista]
+                    .filter { !$0.isEmpty }
+                    .joined(separator: " - ")
+
+                entries.append(
+                    SimpleEntry(
+                        date: now,
+                        testo: state.testo,
+                        dettagli: details,
+                        bgColor: styleBg,
+                        textColor: styleText,
+                        fontStyle: styleFont
+                    )
+                )
+            } else if let phrase = SupabaseWidgetClient.hourlyPhrase(for: currentHour) {
+                entries.append(
+                    SimpleEntry(
+                        date: now,
+                        testo: phrase.testo,
+                        dettagli: [phrase.titolo, phrase.artista]
+                            .filter { !$0.isEmpty }
+                            .joined(separator: " - "),
+                        bgColor: styleBg,
+                        textColor: styleText,
+                        fontStyle: styleFont
+                    )
                 )
             } else {
-                entry = SimpleEntry(
-                    date: Date(),
-                    testo: "Apri myLyrics per iniziare.",
-                    dettagli: "",
-                    bgColor: "000000",
-                    textColor: "FFFFFF",
-                    fontStyle: "default"
+                entries.append(
+                    SimpleEntry(
+                        date: now,
+                        testo: "Apri myLyrics per iniziare.",
+                        dettagli: "",
+                        bgColor: styleBg,
+                        textColor: styleText,
+                        fontStyle: styleFont
+                    )
                 )
             }
 
-            let nextUpdate = Calendar.current.date(
-                byAdding: .minute,
-                value: 15,
-                to: Date()
-            ) ?? Date().addingTimeInterval(15 * 60)
+            // Precompute the next six hourly phrases so the widget can change
+            // independently even when the main app is closed.
+            for offset in 1...6 {
+                let entryDate = Calendar.autoupdatingCurrent.date(
+                    byAdding: .hour,
+                    value: offset,
+                    to: SupabaseWidgetClient.nextHour(after: now)
+                ) ?? now.addingTimeInterval(Double(offset) * 3600)
+
+                let hourKey = SupabaseWidgetClient.currentHourKey(entryDate)
+
+                if let phrase = SupabaseWidgetClient.hourlyPhrase(for: hourKey) {
+                    entries.append(
+                        SimpleEntry(
+                            date: entryDate,
+                            testo: phrase.testo,
+                            dettagli: [phrase.titolo, phrase.artista]
+                                .filter { !$0.isEmpty }
+                                .joined(separator: " - "),
+                            bgColor: styleBg,
+                            textColor: styleText,
+                            fontStyle: styleFont
+                        )
+                    )
+                }
+            }
 
             completion(
-                Timeline(entries: [entry], policy: .after(nextUpdate))
+                Timeline(
+                    entries: entries,
+                    policy: .after(
+                        Calendar.autoupdatingCurrent.date(
+                            byAdding: .hour,
+                            value: 1,
+                            to: SupabaseWidgetClient.nextHour(after: now)
+                        ) ?? now.addingTimeInterval(7200)
+                    )
+                )
             )
         }
     }
@@ -187,51 +309,80 @@ struct FrasiWidgetEntryView: View {
         }
     }
 
+    @ViewBuilder
+    private func quoteText(baseSize: CGFloat) -> some View {
+        Text(entry.testo)
+            .font(.system(size: baseSize, weight: .semibold, design: fontDesign))
+            .foregroundStyle(Color(hex: entry.textColor))
+            .multilineTextAlignment(.center)
+            .lineSpacing(-0.5)
+            .allowsTightening(true)
+            .minimumScaleFactor(0.35)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    @ViewBuilder
+    private func adaptiveQuote() -> some View {
+        // ViewThatFits chooses the largest text size whose full multiline content
+        // fits the available vertical space; none of these variants truncates the quote.
+        ViewThatFits(in: .vertical) {
+            quoteText(baseSize: 18)
+            quoteText(baseSize: 16)
+            quoteText(baseSize: 14)
+            quoteText(baseSize: 12)
+            quoteText(baseSize: 10)
+            quoteText(baseSize: 8)
+        }
+    }
+
     var body: some View {
         Group {
             if family == .accessoryRectangular {
-                Text(entry.testo)
-                    .font(.system(size: 14, weight: .medium, design: fontDesign))
-                    .foregroundStyle(Color(hex: entry.textColor))
-                    .lineLimit(3)
-                    .multilineTextAlignment(.center)
-                    .padding(6)
-            } else {
-                VStack(alignment: .center, spacing: 10) {
-                    Image(systemName: "quote.opening")
-                        .font(.system(size: 20, weight: .heavy))
-                        .foregroundStyle(Color(hex: entry.textColor).opacity(0.6))
-
-                    Text(entry.testo)
-                        .font(.system(size: 15, weight: .semibold, design: fontDesign))
-                        .foregroundStyle(Color(hex: entry.textColor))
-                        .multilineTextAlignment(.center)
-                        .lineLimit(4)
-                        .minimumScaleFactor(0.8)
-
-                    Spacer()
-
-                    Text(entry.dettagli)
-                        .font(.system(size: 12, weight: .medium, design: fontDesign))
-                        .foregroundStyle(Color(hex: entry.textColor).opacity(0.8))
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
+                // The Lock Screen rectangular family has very limited space.
+                // Prioritize the complete quote over metadata.
+                ViewThatFits(in: .vertical) {
+                    quoteText(baseSize: 14)
+                    quoteText(baseSize: 12)
+                    quoteText(baseSize: 10)
+                    quoteText(baseSize: 8)
                 }
-                .padding(12)
+                .padding(4)
+            } else {
+                ViewThatFits(in: .vertical) {
+                    VStack(alignment: .center, spacing: 6) {
+                        Image(systemName: "quote.opening")
+                            .font(.system(size: 18, weight: .heavy))
+                            .foregroundStyle(Color(hex: entry.textColor).opacity(0.6))
+
+                        adaptiveQuote()
+
+                        if !entry.dettagli.isEmpty {
+                            Text(entry.dettagli)
+                                .font(.system(size: 11, weight: .medium, design: fontDesign))
+                                .foregroundStyle(Color(hex: entry.textColor).opacity(0.8))
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                        }
+                    }
+                    .padding(10)
+
+                    VStack(spacing: 5) {
+                        adaptiveQuote()
+                    }
+                    .padding(8)
+
+                    adaptiveQuote()
+                        .padding(8)
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .containerBackground(for: .widget) {
             if entry.bgColor == "transparent" {
-                // Accessory widgets (e.g. Lock Screen) naturally blend into
-                // the system background. On Home Screen, use a subtle material
-                // instead of the opaque dark fallback that SwiftUI can show
-                // for a transparent container.
                 if family == .accessoryRectangular {
                     Color.clear
                 } else {
-                    Rectangle()
-                        .fill(.ultraThinMaterial)
+                    Rectangle().fill(.ultraThinMaterial)
                 }
             } else {
                 Color(hex: entry.bgColor)

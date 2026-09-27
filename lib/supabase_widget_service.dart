@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 
 class SupabaseWidgetState {
   final int phraseId;
+  final String hourKey;
   final String testo;
   final String titolo;
   final String artista;
@@ -13,6 +14,7 @@ class SupabaseWidgetState {
 
   const SupabaseWidgetState({
     required this.phraseId,
+    required this.hourKey,
     required this.testo,
     required this.titolo,
     required this.artista,
@@ -25,6 +27,7 @@ class SupabaseWidgetState {
   factory SupabaseWidgetState.fromJson(Map<String, dynamic> json) {
     return SupabaseWidgetState(
       phraseId: (json['phrase_id'] as num?)?.toInt() ?? 0,
+      hourKey: json['hour_key']?.toString() ?? '',
       testo: json['testo']?.toString() ?? '',
       titolo: json['titolo']?.toString() ?? '',
       artista: json['artista']?.toString() ?? '',
@@ -40,6 +43,7 @@ class SupabaseWidgetState {
   Map<String, dynamic> toJson() => {
         'id': 1,
         'phrase_id': phraseId,
+        'hour_key': hourKey,
         'testo': testo,
         'titolo': titolo,
         'artista': artista,
@@ -133,13 +137,23 @@ class SupabaseWidgetService {
     );
   }
 
+  static String currentHourKey([DateTime? value]) {
+    final now = value ?? DateTime.now();
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+
+    return '${now.year.toString().padLeft(4, '0')}-'
+        '${twoDigits(now.month)}-${twoDigits(now.day)}-${twoDigits(now.hour)}';
+  }
+
   Future<SupabaseWidgetState> setPhrase(
+
     Map<String, dynamic> phrase, {
     SupabaseWidgetState? existing,
   }) {
     return upsert(
       SupabaseWidgetState(
         phraseId: (phrase['id'] as num?)?.toInt() ?? 0,
+        hourKey: currentHourKey(),
         testo: phrase['testo']?.toString() ?? '',
         titolo: phrase['titolo']?.toString() ?? '',
         artista: phrase['artista']?.toString() ?? '',
@@ -159,6 +173,7 @@ class SupabaseWidgetService {
     return upsert(
       SupabaseWidgetState(
         phraseId: existing?.phraseId ?? 0,
+        hourKey: existing?.hourKey ?? currentHourKey(),
         testo: existing?.testo ?? '',
         titolo: existing?.titolo ?? '',
         artista: existing?.artista ?? '',

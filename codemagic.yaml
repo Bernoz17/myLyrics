@@ -9,6 +9,7 @@ workflows:
       xcode: latest
       groups:
         - supabase_config
+
     scripts:
       - name: Flutter doctor
         script: |

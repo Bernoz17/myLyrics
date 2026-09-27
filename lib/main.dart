@@ -104,60 +104,84 @@ class _HomeTabState extends State<HomeTab> {
 
     try {
       final service = SupabaseWidgetService.instance;
-      SupabaseWidgetState? stato;
+      final currentHour = SupabaseWidgetService.currentHourKey();
+      SupabaseWidgetState? stato =
+          service.isConfigured ? await service.getState() : null;
 
-      // Always read the current shared state first. This is important when
-      // "Aggiorna la frase" is pressed: the new random phrase must replace
-      // only the phrase fields, while bg/font/text-color stay untouched.
-      if (service.isConfigured) {
-        stato = await service.getState();
-      }
+      Map<String, dynamic>? frase;
 
-      if (nuovaCasuale || stato == null) {
-        final frase = await DatabaseHelper.instance.getRandomFrase();
-        if (frase == null) throw Exception('Nessuna frase disponibile.');
+      if (nuovaCasuale) {
+        // Manual refresh: choose a genuinely random phrase for THIS hour,
+        // while keeping the current widget style.
+        frase = await DatabaseHelper.instance.getRandomFrase();
+
+        if (frase == null) {
+          throw Exception('Nessuna frase disponibile.');
+        }
 
         if (service.isConfigured) {
           stato = await service.setPhrase(frase, existing: stato);
           await WidgetBridge.reload();
-        } else {
-          stato = SupabaseWidgetState(
-            phraseId: (frase['id'] as num?)?.toInt() ?? 0,
-            testo: frase['testo']?.toString() ?? '',
-            titolo: frase['titolo']?.toString() ?? '',
-            artista: frase['artista']?.toString() ?? '',
-            bgColor: stato?.bgColor ?? '000000',
-            textColor: stato?.textColor ?? 'FFFFFF',
-            fontStyle: stato?.fontStyle ?? 'default',
-          );
         }
-      }
-
-      if (!mounted) return;
-      setState(() {
-        fraseDelGiorno = {
-          'id': stato!.phraseId,
+      } else if (stato != null && stato.hourKey == currentHour) {
+        // The current hour already has a selected phrase.
+        frase = {
+          'id': stato.phraseId,
           'testo': stato.testo,
           'titolo': stato.titolo,
           'artista': stato.artista,
         };
-        isLoading = false;
-      });
-    } catch (e) {
-      final fallback = await DatabaseHelper.instance.getRandomFrase();
+      } else {
+        // New hour (or first run): deterministic pseudo-random phrase.
+        final index =
+            await DatabaseHelper.instance.getIndiceFraseOraria(currentHour);
+
+        frase = await DatabaseHelper.instance.getFrasePerIndice(index);
+
+        if (frase == null) {
+          throw Exception('Nessuna frase disponibile.');
+        }
+
+        if (service.isConfigured) {
+          stato = await service.setPhrase(frase, existing: stato);
+          await WidgetBridge.reload();
+        }
+      }
+
       if (!mounted) return;
 
       setState(() {
-        fraseDelGiorno = fallback;
+        fraseDelGiorno = frase;
         isLoading = false;
       });
+    } catch (e) {
+      // Offline fallback: deterministic hourly selection still works without Supabase.
+      try {
+        final currentHour = SupabaseWidgetService.currentHourKey();
+        final index =
+            await DatabaseHelper.instance.getIndiceFraseOraria(currentHour);
+        final fallback =
+            await DatabaseHelper.instance.getFrasePerIndice(index);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Supabase non raggiungibile: $e'),
-          duration: const Duration(seconds: 4),
-        ),
-      );
+        if (!mounted) return;
+        setState(() {
+          fraseDelGiorno = fallback;
+          isLoading = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Supabase non raggiungibile: $e'),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      } catch (_) {
+        if (!mounted) return;
+        setState(() {
+          fraseDelGiorno = null;
+          isLoading = false;
+        });
+      }
     }
   }
 

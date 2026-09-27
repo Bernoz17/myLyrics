@@ -126,6 +126,62 @@ class DatabaseHelper {
     return null;
   }
 
+  Future<Map<String, dynamic>?> getFrasePerIndice(int index) async {
+    final String jsonString = await rootBundle.loadString('assets/frasi.json');
+    final dynamic jsonData = jsonDecode(jsonString);
+
+    List<dynamic> jsonList;
+    if (jsonData is List) {
+      jsonList = jsonData;
+    } else if (jsonData is Map && jsonData.containsKey('frasi')) {
+      jsonList = jsonData['frasi'];
+    } else {
+      throw Exception("Struttura JSON non riconosciuta.");
+    }
+
+    if (jsonList.isEmpty) return null;
+
+    final normalizedIndex = ((index % jsonList.length) + jsonList.length) % jsonList.length;
+    final item = Map<String, dynamic>.from(jsonList[normalizedIndex] as Map);
+
+    return {
+      'id': normalizedIndex + 1,
+      'testo': item['testo']?.toString() ?? '',
+      'titolo': item['titolo']?.toString() ?? '',
+      'artista': item['artista']?.toString() ?? '',
+      'preferito': item['preferito'] ?? 0,
+    };
+  }
+
+  Future<int> getIndiceFraseOraria(String hourKey) async {
+    final String jsonString = await rootBundle.loadString('assets/frasi.json');
+    final dynamic jsonData = jsonDecode(jsonString);
+
+    List<dynamic> jsonList;
+    if (jsonData is List) {
+      jsonList = jsonData;
+    } else if (jsonData is Map && jsonData.containsKey('frasi')) {
+      jsonList = jsonData['frasi'];
+    } else {
+      throw Exception("Struttura JSON non riconosciuta.");
+    }
+
+    if (jsonList.isEmpty) return 0;
+
+    // FNV-1a 32-bit: same algorithm is implemented in the Swift widget.
+    const int offsetBasis = 2166136261;
+    const int prime = 16777619;
+    const int mask = 0xFFFFFFFF;
+
+    var hash = offsetBasis;
+    for (final code in '$hourKey-myLyrics'.codeUnits) {
+      hash ^= code;
+      hash = (hash * prime) & mask;
+    }
+
+    return hash % jsonList.length;
+  }
+
   String _rimuoviAccenti(String testo) {
     return testo.toLowerCase()
         .replaceAll('à', 'a').replaceAll('á', 'a')
