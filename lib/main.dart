@@ -26,13 +26,104 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Le Mie Barre',
-      theme: ThemeData.dark(useMaterial3: true).copyWith(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.tealAccent,
-          brightness: Brightness.dark,
+      theme: _buildTheme(),
+      home: const MainNavigationScreen(),
+    );
+  }
+}
+
+// Palette "notturna": nero bluastro con accenti verde acqua.
+const kBgTop = Color(0xFF0E1A1F);
+const kBgBottom = Color(0xFF07090C);
+const kAccent = Color(0xFF64FFDA);
+const kQuoteFont = 'Georgia';
+
+ThemeData _buildTheme() {
+  final base = ThemeData.dark(useMaterial3: true);
+  final scheme = ColorScheme.fromSeed(
+    seedColor: Colors.tealAccent,
+    brightness: Brightness.dark,
+  );
+
+  return base.copyWith(
+    colorScheme: scheme,
+    // Le schermate sono trasparenti: lo sfondo sfumato sta sotto a tutto.
+    scaffoldBackgroundColor: Colors.transparent,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      centerTitle: true,
+      titleTextStyle: TextStyle(
+        fontFamily: kQuoteFont,
+        fontSize: 21,
+        fontStyle: FontStyle.italic,
+        letterSpacing: 0.5,
+        color: Colors.white,
+      ),
+    ),
+    cardTheme: CardThemeData(
+      color: Colors.white.withValues(alpha: 0.05),
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: Colors.black.withValues(alpha: 0.35),
+      surfaceTintColor: Colors.transparent,
+      indicatorColor: kAccent.withValues(alpha: 0.18),
+      iconTheme: WidgetStateProperty.resolveWith(
+        (states) => IconThemeData(
+          color: states.contains(WidgetState.selected) ? kAccent : Colors.white60,
         ),
       ),
-      home: const MainNavigationScreen(),
+      labelTextStyle: WidgetStateProperty.resolveWith(
+        (states) => TextStyle(
+          fontSize: 12,
+          color: states.contains(WidgetState.selected) ? kAccent : Colors.white60,
+        ),
+      ),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: const Color(0xFF142228),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    ),
+    expansionTileTheme: const ExpansionTileThemeData(
+      shape: Border(),
+      collapsedShape: Border(),
+    ),
+  );
+}
+
+// Sfondo sfumato con un bagliore morbido in alto: dà "atmosfera" senza disturbare.
+class AtmosphereBackground extends StatelessWidget {
+  final Widget child;
+  const AtmosphereBackground({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [kBgTop, kBgBottom],
+        ),
+      ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: const Alignment(-0.6, -0.9),
+            radius: 1.1,
+            colors: [kAccent.withValues(alpha: 0.10), Colors.transparent],
+          ),
+        ),
+        child: child,
+      ),
     );
   }
 }
@@ -58,22 +149,24 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _pages[_currentIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.list_alt), label: 'Tutte'),
-          NavigationDestination(icon: Icon(Icons.home), label: 'Oggi'),
-          NavigationDestination(icon: Icon(Icons.star), label: 'Preferiti'),
-          NavigationDestination(icon: Icon(Icons.mic), label: 'Artisti'),
-          NavigationDestination(icon: Icon(Icons.widgets), label: 'Widget'),
-        ],
+    return AtmosphereBackground(
+      child: Scaffold(
+        body: _pages[_currentIndex],
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _currentIndex,
+          onDestinationSelected: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+          destinations: const [
+            NavigationDestination(icon: Icon(Icons.list_alt), label: 'Tutte'),
+            NavigationDestination(icon: Icon(Icons.home), label: 'Oggi'),
+            NavigationDestination(icon: Icon(Icons.star), label: 'Preferiti'),
+            NavigationDestination(icon: Icon(Icons.mic), label: 'Artisti'),
+            NavigationDestination(icon: Icon(Icons.widgets), label: 'Widget'),
+          ],
+        ),
       ),
     );
   }
@@ -194,38 +287,89 @@ class _HomeTabState extends State<HomeTab> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Frase del Giorno"), centerTitle: true),
+      appBar: AppBar(title: const Text("Frase del Giorno")),
       body: Center(
-        child: isLoading
-            ? const CircularProgressIndicator()
-            : fraseDelGiorno == null
-                ? const Text("Nessuna frase trovata")
-                : Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.format_quote, size: 60, color: Colors.tealAccent),
-                        const SizedBox(height: 20),
-                        Text(
-                          '"${fraseDelGiorno!['testo']}"',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          "${fraseDelGiorno!['titolo']} - ${fraseDelGiorno!['artista']}",
-                          style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
-                        ),
-                        const SizedBox(height: 50),
-                        ElevatedButton.icon(
-                          onPressed: _aggiornaFrase,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text("Aggiorna la frase del giorno"),
-                        )
-                      ],
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 600),
+          switchInCurve: Curves.easeOut,
+          child: isLoading
+              ? const CircularProgressIndicator(color: kAccent)
+              : fraseDelGiorno == null
+                  ? const Text("Nessuna frase trovata")
+                  : SingleChildScrollView(
+                      key: ValueKey(fraseDelGiorno!['testo']),
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Virgolette con un leggero alone luminoso
+                          Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: kAccent.withValues(alpha: 0.25),
+                                  blurRadius: 40,
+                                  spreadRadius: 4,
+                                ),
+                              ],
+                            ),
+                            child: Icon(Icons.format_quote, size: 56, color: kAccent.withValues(alpha: 0.9)),
+                          ),
+                          const SizedBox(height: 28),
+                          Text(
+                            '${fraseDelGiorno!['testo']}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontFamily: kQuoteFont,
+                              fontSize: 24,
+                              height: 1.45,
+                              fontStyle: FontStyle.italic,
+                              color: Color(0xFFF2F5F4),
+                              shadows: [Shadow(color: Colors.black54, blurRadius: 12)],
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+                          Container(
+                            width: 36,
+                            height: 2,
+                            decoration: BoxDecoration(
+                              color: kAccent.withValues(alpha: 0.6),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            '${fraseDelGiorno!['artista'] ?? ''}'.toUpperCase(),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              letterSpacing: 2.5,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white70,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${fraseDelGiorno!['titolo'] ?? ''}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 15, fontStyle: FontStyle.italic, color: Colors.white54),
+                          ),
+                          const SizedBox(height: 48),
+                          OutlinedButton.icon(
+                            onPressed: _aggiornaFrase,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text("Aggiorna la frase"),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: kAccent,
+                              side: BorderSide(color: kAccent.withValues(alpha: 0.5)),
+                              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+        ),
       ),
     );
   }
@@ -254,13 +398,18 @@ class FraseCardWidget extends StatelessWidget {
     final bool isPreferito = frase['preferito'] == 1;
 
     return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+      margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 12),
       child: ListTile(
-        title: Text(frase['testo'], style: const TextStyle(fontWeight: FontWeight.w500)),
+        title: Text(
+          frase['testo'],
+          style: const TextStyle(fontFamily: kQuoteFont, fontSize: 16, height: 1.35),
+        ),
         subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4.0),
-          child: Text("${frase['titolo']} - ${frase['artista']}"),
+          padding: const EdgeInsets.only(top: 6.0),
+          child: Text(
+            "${frase['titolo']} · ${frase['artista']}",
+            style: TextStyle(fontSize: 12.5, color: kAccent.withValues(alpha: 0.7)),
+          ),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -457,7 +606,7 @@ class _AllPhrasesTabState extends State<AllPhrasesTab> with InterazioniFrase {
                 hintText: 'Cerca parola, artista o brano...',
                 prefixIcon: const Icon(Icons.search, color: Colors.tealAccent),
                 filled: true,
-                fillColor: Colors.black26,
+                fillColor: Colors.white.withValues(alpha: 0.06),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
               ),
@@ -549,7 +698,7 @@ class _FavoritesTabState extends State<FavoritesTab> with InterazioniFrase {
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 width: double.infinity,
-                color: Colors.black26,
+                color: Colors.white.withValues(alpha: 0.04),
                 child: Text(
                   "Hai salvato ${frasi.length} ${frasi.length == 1 ? 'frase' : 'frasi'}",
                   style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.amber),
@@ -608,7 +757,11 @@ class _ArtistsTabState extends State<ArtistsTab> with InterazioniFrase {
             itemBuilder: (context, index) {
               final artista = artisti[index];
               return ExpansionTile(
-                leading: const CircleAvatar(child: Icon(Icons.person)),
+                leading: CircleAvatar(
+                  backgroundColor: kAccent.withValues(alpha: 0.12),
+                  foregroundColor: kAccent,
+                  child: Text(artista.isNotEmpty ? artista[0].toUpperCase() : '?'),
+                ),
                 title: Text(artista, style: const TextStyle(fontWeight: FontWeight.bold)),
                 children: [
                   FutureBuilder<List<Map<String, dynamic>>>(

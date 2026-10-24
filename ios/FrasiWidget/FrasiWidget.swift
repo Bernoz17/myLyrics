@@ -351,15 +351,20 @@ struct FrasiWidgetEntryView: View {
                 ViewThatFits(in: .vertical) {
                     VStack(alignment: .center, spacing: 6) {
                         Image(systemName: "quote.opening")
-                            .font(.system(size: 18, weight: .heavy))
-                            .foregroundStyle(Color(hex: entry.textColor).opacity(0.6))
+                            .font(.system(size: 16, weight: .heavy))
+                            .foregroundStyle(Color(hex: entry.textColor).opacity(0.45))
 
                         adaptiveQuote()
 
                         if !entry.dettagli.isEmpty {
+                            Capsule()
+                                .fill(Color(hex: entry.textColor).opacity(0.35))
+                                .frame(width: 22, height: 1.5)
+
                             Text(entry.dettagli)
                                 .font(.system(size: 11, weight: .medium, design: fontDesign))
-                                .foregroundStyle(Color(hex: entry.textColor).opacity(0.8))
+                                .italic()
+                                .foregroundStyle(Color(hex: entry.textColor).opacity(0.75))
                                 .multilineTextAlignment(.center)
                                 .lineLimit(2)
                         }
@@ -379,14 +384,25 @@ struct FrasiWidgetEntryView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .containerBackground(for: .widget) {
             if entry.bgColor == "transparent" {
-                if family == .accessoryRectangular {
-                    Color.clear
-                } else {
-                    Rectangle().fill(.ultraThinMaterial)
-                }
+                // No material/blur here: on the Home Screen a material renders as an
+                // opaque grey plate. Color.clear lets iOS show its own glass look when
+                // the Home Screen is set to "Clear"/"Tinted".
+                Color.clear
             } else {
-                Color(hex: entry.bgColor)
+                atmosphereBackground
             }
+        }
+    }
+
+    // Solid background with a soft light-to-shadow gradient for some depth.
+    private var atmosphereBackground: some View {
+        ZStack {
+            Color(hex: entry.bgColor)
+            LinearGradient(
+                colors: [Color.white.opacity(0.10), Color.clear, Color.black.opacity(0.22)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         }
     }
 }
