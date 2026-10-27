@@ -91,7 +91,7 @@ class SupabaseWidgetService {
 
     final uri = _uri.replace(queryParameters: {
       'select':
-          'id,phrase_id,testo,titolo,artista,bg_color,text_color,font_style,updated_at',
+          'id,phrase_id,hour_key,testo,titolo,artista,bg_color,text_color,font_style,updated_at',
       'id': 'eq.1',
       'limit': '1',
     });

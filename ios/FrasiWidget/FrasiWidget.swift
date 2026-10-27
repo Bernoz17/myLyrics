@@ -300,6 +300,8 @@ struct FrasiWidgetEntryView: View {
 
     @Environment(\.widgetFamily) private var family
 
+    private var isTransparent: Bool { entry.bgColor == "transparent" }
+
     private var fontDesign: Font.Design {
         switch entry.fontStyle {
         case "serif": return .serif
@@ -382,12 +384,15 @@ struct FrasiWidgetEntryView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // On a see-through background a soft shadow keeps the text readable
+        // over any wallpaper.
+        .shadow(color: .black.opacity(isTransparent ? 0.55 : 0), radius: 3, x: 0, y: 1)
         .containerBackground(for: .widget) {
-            if entry.bgColor == "transparent" {
-                // No material/blur here: on the Home Screen a material renders as an
-                // opaque grey plate. Color.clear lets iOS show its own glass look when
-                // the Home Screen is set to "Clear"/"Tinted".
-                Color.clear
+            if isTransparent {
+                // Color.clear still showed an opaque plate on the Home Screen.
+                // Trying a practically invisible (non-zero alpha) color instead,
+                // a workaround other developers use. No material: it renders grey.
+                Color.black.opacity(0.001)
             } else {
                 atmosphereBackground
             }
@@ -415,7 +420,7 @@ struct FrasiWidget: Widget {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
             FrasiWidgetEntryView(entry: entry)
         }
-        .configurationDisplayName("Le Mie Barre")
+        .configurationDisplayName("myLyrics")
         .description("Mostra la frase e lo stile salvati in myLyrics.")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular])
     }

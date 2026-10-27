@@ -25,7 +25,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Le Mie Barre',
+      title: 'myLyrics',
       theme: _buildTheme(),
       home: const MainNavigationScreen(),
     );
@@ -136,13 +136,12 @@ class MainNavigationScreen extends StatefulWidget {
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _currentIndex = 1; // 1 è la Home
+  int _currentIndex = 2; // 2 è la Home, al centro del menù
 
-  // Aggiunta la schermata dei Preferiti all'indice 2
   final List<Widget> _pages = [
     const AllPhrasesTab(),
-    const HomeTab(),
     const FavoritesTab(),
+    const HomeTab(),
     const ArtistsTab(),
     const WidgetSettingsTab(),
   ];
@@ -161,8 +160,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           },
           destinations: const [
             NavigationDestination(icon: Icon(Icons.list_alt), label: 'Tutte'),
-            NavigationDestination(icon: Icon(Icons.home), label: 'Oggi'),
             NavigationDestination(icon: Icon(Icons.star), label: 'Preferiti'),
+            NavigationDestination(icon: Icon(Icons.home), label: 'Oggi'),
             NavigationDestination(icon: Icon(Icons.mic), label: 'Artisti'),
             NavigationDestination(icon: Icon(Icons.widgets), label: 'Widget'),
           ],
