@@ -48,12 +48,23 @@ workflows:
           path.write_text(text)
           PY
 
+      - name: Set a new build number
+        script: |
+          set -e
+          # iOS only re-reads the widget list when the build number changes,
+          # so every Codemagic build gets a higher one (app and widget alike).
+          NEW_BUILD=$((100 + ${BUILD_NUMBER:-0}))
+          echo "Build number: $NEW_BUILD"
+          sed -i '' "s/CURRENT_PROJECT_VERSION = 2;/CURRENT_PROJECT_VERSION = $NEW_BUILD;/g" ios/Runner.xcodeproj/project.pbxproj
+          echo "NEW_BUILD=$NEW_BUILD" >> $CM_ENV
+
       - name: Build iOS without code signing
         script: |
           set -e
           flutter build ios \
             --release \
             --no-codesign \
+            --build-number="$NEW_BUILD" \
             --dart-define=SUPABASE_URL="$SUPABASE_URL" \
             --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
 
