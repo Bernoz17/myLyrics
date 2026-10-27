@@ -412,7 +412,115 @@ struct FrasiWidgetEntryView: View {
     }
 }
 
+// ----------------------------------------------------------------------
+// TEMPORARY transparency tests: one widget per technique, labelled A–G.
+// Add them all to the Home Screen, see which letter is see-through,
+// then keep only that technique and delete this section.
+// ----------------------------------------------------------------------
+
+enum TransparencyTest: String {
+    case a, b, c, d, e, f, g
+
+    var title: String {
+        switch self {
+        case .a: return "A · Color.clear"
+        case .b: return "B · stile .clear"
+        case .c: return "C · quasi invisibile"
+        case .d: return "D · EmptyView"
+        case .e: return "E · non rimovibile"
+        case .f: return "F · vetro clear"
+        case .g: return "G · nessuno sfondo"
+        }
+    }
+}
+
+#if compiler(>=6.2)
+@ViewBuilder
+private func clearGlassBackground() -> some View {
+    if #available(iOS 26.0, *) {
+        Color.clear.glassEffect(.clear, in: ContainerRelativeShape())
+    } else {
+        Color.clear
+    }
+}
+#else
+private func clearGlassBackground() -> some View {
+    Color.clear
+}
+#endif
+
+struct TransparencyTestView: View {
+    let entry: SimpleEntry
+    let test: TransparencyTest
+
+    private var label: some View {
+        VStack(spacing: 6) {
+            Text(test.title)
+                .font(.system(size: 13, weight: .heavy))
+            Text(entry.testo)
+                .font(.system(size: 11, weight: .medium))
+                .multilineTextAlignment(.center)
+                .lineLimit(5)
+                .minimumScaleFactor(0.6)
+        }
+        .foregroundStyle(.white)
+        .shadow(color: .black.opacity(0.6), radius: 2, y: 1)
+        .padding(8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    var body: some View {
+        switch test {
+        case .a:
+            label.containerBackground(for: .widget) { Color.clear }
+        case .b:
+            label.containerBackground(Color.clear, for: .widget)
+        case .c:
+            label.containerBackground(for: .widget) { Color.black.opacity(0.001) }
+        case .d:
+            label.containerBackground(for: .widget) { EmptyView() }
+        case .e:
+            label.containerBackground(for: .widget) { Color.clear }
+        case .f:
+            label.containerBackground(for: .widget) { clearGlassBackground() }
+        case .g:
+            label
+        }
+    }
+}
+
+private func testConfiguration(_ test: TransparencyTest, removable: Bool = true) -> some WidgetConfiguration {
+    StaticConfiguration(kind: "TransparencyTest_\(test.rawValue)", provider: Provider()) { entry in
+        TransparencyTestView(entry: entry, test: test)
+    }
+    .configurationDisplayName("Test \(test.rawValue.uppercased())")
+    .description(test.title)
+    .supportedFamilies([.systemSmall])
+    .containerBackgroundRemovable(removable)
+}
+
+struct TestWidgetA: Widget { var body: some WidgetConfiguration { testConfiguration(.a) } }
+struct TestWidgetB: Widget { var body: some WidgetConfiguration { testConfiguration(.b) } }
+struct TestWidgetC: Widget { var body: some WidgetConfiguration { testConfiguration(.c) } }
+struct TestWidgetD: Widget { var body: some WidgetConfiguration { testConfiguration(.d) } }
+struct TestWidgetE: Widget { var body: some WidgetConfiguration { testConfiguration(.e, removable: false) } }
+struct TestWidgetF: Widget { var body: some WidgetConfiguration { testConfiguration(.f) } }
+struct TestWidgetG: Widget { var body: some WidgetConfiguration { testConfiguration(.g) } }
+
 @main
+struct MyLyricsWidgets: WidgetBundle {
+    var body: some Widget {
+        FrasiWidget()
+        TestWidgetA()
+        TestWidgetB()
+        TestWidgetC()
+        TestWidgetD()
+        TestWidgetE()
+        TestWidgetF()
+        TestWidgetG()
+    }
+}
+
 struct FrasiWidget: Widget {
     let kind = "FrasiWidget"
 
